@@ -133,9 +133,9 @@ RUN foxy && \
     rosdep install --from-paths . --ignore-src -r -y && \
     colcon build --packages-select zenoh_bridge_ros2dds --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-# ------------------------------------
-# Download vS-Graphs Vox2Ros Toolkit
-# ------------------------------------
+# ---------------------------------------------------------
+# Download Vox2Ros Toolkit for Communication with vS-Graphs
+# ---------------------------------------------------------
 RUN sudo apt update && sudo apt install -y nano
 RUN pip3 install --no-cache-dir setuptools
 WORKDIR /root/voxblox_ws/tools
