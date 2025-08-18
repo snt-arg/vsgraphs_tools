@@ -139,7 +139,7 @@ RUN foxy && \
 RUN sudo apt update && sudo apt install -y nano
 RUN pip3 install --no-cache-dir setuptools
 WORKDIR /root/voxblox_ws/tools
-RUN curl -L https://raw.githubusercontent.com/snt-arg/visual_sgraphs/refs/heads/feat-voxblox/core/Thirdparty/voxblox/vox2ros.py -o /root/voxblox_ws/tools/vox2ros.py
+RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/vox2ros.py -o /root/voxblox_ws/tools/vox2ros.py
 RUN chmod +x /root/voxblox_ws/tools/vox2ros.py
 
 WORKDIR /root/voxblox_ws
