@@ -1,0 +1,42 @@
+services:
+  voxblox_bridge:
+    image: voxblox_bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+      ssh:
+        - default
+      args:
+        USERNAME: $USERNAME
+        USER_UID: 1000
+        USER_GID: 1000
+    container_name: voxblox_bridge
+    environment:
+      ROS_DOMAIN_ID: 3
+      DISPLAY: $DISPLAY
+      XAUTHORITY: $XAUTHORITY
+      SSH_AUTH_SOCK: $SSH_AUTH_SOCK
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      TERM: $TERM
+      SHELL: $SHELL
+    runtime: nvidia
+    privileged: true
+    restart: always
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      # Display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # - ~/.Xauthority:/home/user/.Xauthority:rw
+      - $XAUTHORITY:$XAUTHORITY:rw
+      # SSH
+      - $SSH_AUTH_SOCK:$SSH_AUTH_SOCK
+      # Git
+      - ~/.gitconfig:/home/$USERNAME/.gitconfig_local
+      # Dev
+      - /dev:/dev:rw
+    network_mode: "host"
+    command:
+      tail -f /dev/null
