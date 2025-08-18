@@ -20,11 +20,11 @@ import rclpy
 import socket
 import argparse
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
+from visualization_msgs.msg import MarkerArray, Marker
 
 # Variables
 PORT = 5000
-PUBLISHER_TOPIC = "/vox2ros/sparse_graph"
+PUBLISHER_TOPIC = "/vox2ros/skeleton_sparse_graph"
 FOXY_VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
 # ---------------------------
@@ -33,7 +33,7 @@ FOXY_VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 class FoxyRelay(Node):
     def __init__(self, host="0.0.0.0"):
         super().__init__('voxblox_foxy_relay')
-        self.sub = self.create_subscription(PoseStamped, FOXY_VOXBLOX_TOPIC, self.callback, 10)
+        self.sub = self.create_subscription(MarkerArray, FOXY_VOXBLOX_TOPIC, self.callback, 10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((host, PORT))
         self.sock.listen(1)
@@ -41,28 +41,47 @@ class FoxyRelay(Node):
         self.conn, addr = self.sock.accept()
         self.get_logger().info(f"[Voxblox_Foxy] Connected to the client by {addr}!")
 
-    def callback(self, msg: PoseStamped):
+    def callback(self, msg: MarkerArray):
         data = {
-            "header": {
-                "stamp": {"sec": msg.header.stamp.sec, "nanosec": msg.header.stamp.nanosec},
-                "frame_id": msg.header.frame_id,
-            },
-            "pose": {
-                "position": {
-                    "x": msg.pose.position.x,
-                    "y": msg.pose.position.y,
-                    "z": msg.pose.position.z,
-                },
-                "orientation": {
-                    "x": msg.pose.orientation.x,
-                    "y": msg.pose.orientation.y,
-                    "z": msg.pose.orientation.z,
-                    "w": msg.pose.orientation.w,
-                },
-            },
+            "markers": []
         }
+        for m in msg.markers:
+            data["markers"].append({
+                "header": {
+                    "stamp": {"sec": m.header.stamp.sec, "nanosec": m.header.stamp.nanosec},
+                    "frame_id": m.header.frame_id,
+                },
+                "ns": m.ns,
+                "id": m.id,
+                "type": m.type,
+                "action": m.action,
+                "pose": {
+                    "position": {
+                        "x": m.pose.position.x,
+                        "y": m.pose.position.y,
+                        "z": m.pose.position.z,
+                    },
+                    "orientation": {
+                        "x": m.pose.orientation.x,
+                        "y": m.pose.orientation.y,
+                        "z": m.pose.orientation.z,
+                        "w": m.pose.orientation.w,
+                    },
+                },
+                "scale": {
+                    "x": m.scale.x,
+                    "y": m.scale.y,
+                    "z": m.scale.z,
+                },
+                "color": {
+                    "r": m.color.r,
+                    "g": m.color.g,
+                    "b": m.color.b,
+                    "a": m.color.a,
+                },
+            })
         try:
-            self.conn.sendall((json.dumps(data) + "\n").encode('utf-8'))
+            self.conn.sendall((json.dumps(data) + "\n").encode("utf-8"))
         except (BrokenPipeError, ConnectionResetError):
             self.get_logger().warn("[Voxblox_Foxy] Lost connection to Jazzy (vS-Graphs) client!")
 
@@ -73,7 +92,7 @@ class FoxyRelay(Node):
 class JazzyRelay(Node):
     def __init__(self, foxy_host):
         super().__init__('vsgraphs_jazzy_relay')
-        self.pub = self.create_publisher(PoseStamped, PUBLISHER_TOPIC, 10)
+        self.pub = self.create_publisher(MarkerArray, PUBLISHER_TOPIC, 10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((foxy_host, PORT))
         self.sock.setblocking(False)
@@ -95,18 +114,32 @@ class JazzyRelay(Node):
                 continue
             try:
                 msg_dict = json.loads(line)
-                msg = PoseStamped()
-                msg.header.stamp.sec = msg_dict["header"]["stamp"]["sec"]
-                msg.header.stamp.nanosec = msg_dict["header"]["stamp"]["nanosec"]
-                msg.header.frame_id = msg_dict["header"]["frame_id"]
-                msg.pose.position.x = msg_dict["pose"]["position"]["x"]
-                msg.pose.position.y = msg_dict["pose"]["position"]["y"]
-                msg.pose.position.z = msg_dict["pose"]["position"]["z"]
-                msg.pose.orientation.x = msg_dict["pose"]["orientation"]["x"]
-                msg.pose.orientation.y = msg_dict["pose"]["orientation"]["y"]
-                msg.pose.orientation.z = msg_dict["pose"]["orientation"]["z"]
-                msg.pose.orientation.w = msg_dict["pose"]["orientation"]["w"]
-                self.pub.publish(msg)
+                marker_array = MarkerArray()
+                for m in msg_dict.get("markers", []):
+                    marker = Marker()
+                    marker.header.frame_id = m["header"]["frame_id"]
+                    marker.header.stamp.sec = m["header"]["stamp"]["sec"]
+                    marker.header.stamp.nanosec = m["header"]["stamp"]["nanosec"]
+                    marker.ns = m["ns"]
+                    marker.id = m["id"]
+                    marker.type = m["type"]
+                    marker.action = m["action"]
+                    marker.pose.position.x = m["pose"]["position"]["x"]
+                    marker.pose.position.y = m["pose"]["position"]["y"]
+                    marker.pose.position.z = m["pose"]["position"]["z"]
+                    marker.pose.orientation.x = m["pose"]["orientation"]["x"]
+                    marker.pose.orientation.y = m["pose"]["orientation"]["y"]
+                    marker.pose.orientation.z = m["pose"]["orientation"]["z"]
+                    marker.pose.orientation.w = m["pose"]["orientation"]["w"]
+                    marker.scale.x = m["scale"]["x"]
+                    marker.scale.y = m["scale"]["y"]
+                    marker.scale.z = m["scale"]["z"]
+                    marker.color.r = m["color"]["r"]
+                    marker.color.g = m["color"]["g"]
+                    marker.color.b = m["color"]["b"]
+                    marker.color.a = m["color"]["a"]
+                    marker_array.markers.append(marker)
+                self.pub.publish(marker_array)
             except json.JSONDecodeError:
                 self.get_logger().warn("[vS-Graphs Jazzy] Failed to decode JSON line")
 
