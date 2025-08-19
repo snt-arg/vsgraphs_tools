@@ -16,7 +16,6 @@
 """
 
 import json
-import rospy
 import rclpy
 import socket
 import argparse
@@ -24,35 +23,34 @@ from rclpy.node import Node
 from visualization_msgs.msg import MarkerArray, Marker
 
 # Variables
-PORT = 7890
-VOXBLOX_NOETIC_TOPIC = "/voxblox_skeletonizer/sparse_graph"
-VOX2ROS_JAZZY_TOPIC = "/vsgraphs_tools/vox2ros_skeleton_graph"
+PORT = 5000
+FOXY_VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
+PUBLISHER_TOPIC = "/vsgraphs_tools/vox2ros_skeleton_graph"
 
 
 # ---------------------------
-# Noetic side (Voxblox): subscriber → TCP sender
+# Foxy side (Voxblox): subscriber → TCP sender
 # ---------------------------
-class NoeticRelay(Node):
+class FoxyRelay(Node):
     def __init__(self, host="0.0.0.0"):
-        rospy.init_node("voxblox_noetic_relay", anonymous=False)
-        self.sub = rospy.Subscriber(
-            VOXBLOX_NOETIC_TOPIC, MarkerArray, self.callback, queue_size=10
+        super().__init__("voxblox_foxy_relay")
+        self.sub = self.create_subscription(
+            MarkerArray, FOXY_VOXBLOX_TOPIC, self.callback, 10
         )
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((host, PORT))
         self.sock.listen(1)
-        rospy.loginfo(
-            f"[Voxblox_Noetic] Waiting for Jazzy client (vS-Graphs) on {host}:{PORT} ..."
+        self.get_logger().info(
+            f"[Voxblox_Foxy] Waiting for Jazzy client (vS-Graphs) on {host}:{PORT} ..."
         )
         self.conn, addr = self.sock.accept()
-        self.get_logger().info(f"[Voxblox_Noetic] Connected to the client by {addr}!")
-        rospy.on_shutdown(self.shutdown)
+        self.get_logger().info(f"[Voxblox_Foxy] Connected to the client by {addr}!")
 
     def callback(self, msg: MarkerArray):
         data = {"markers": []}
-        rospy.loginfo(
-            f"[Voxblox_Noetic] Messages received, processing {len(msg.markers)} markers ..."
+        self.get_logger().info(
+            f"[Voxblox_Foxy] Messages received, processing {len(msg.markers)} markers ..."
         )
         # Process MarkerArray and convert to JSON
         for m in msg.markers:
@@ -98,19 +96,20 @@ class NoeticRelay(Node):
         try:
             self.conn.sendall((json.dumps(data) + "\n").encode("utf-8"))
         except (BrokenPipeError, ConnectionResetError):
-            rospy.logwarn(
-                "[Voxblox_Noetic] Lost connection to Jazzy (vS-Graphs) client!"
+            self.get_logger().warn(
+                "[Voxblox_Foxy] Lost connection to Jazzy (vS-Graphs) client!"
             )
 
-    def shutdown(self):
-        rospy.loginfo("[Voxblox_Noetic] Shutting down relay...")
+    def destroy_node(self):
+        self.get_logger().info("[Voxblox_Foxy] Shutting down relay...")
         try:
             if hasattr(self, "conn"):
                 self.conn.close()
             if hasattr(self, "sock"):
                 self.sock.close()
         except Exception as e:
-            rospy.logwarn(f"[Voxblox_Noetic] Error closing socket: {e}")
+            self.get_logger().warn(f"[Voxblox_Foxy] Error closing socket: {e}")
+        super().destroy_node()
 
 
 # ---------------------------
@@ -119,7 +118,7 @@ class NoeticRelay(Node):
 class JazzyRelay(Node):
     def __init__(self, foxy_host):
         super().__init__("vsgraphs_jazzy_relay")
-        self.pub = self.create_publisher(MarkerArray, VOX2ROS_JAZZY_TOPIC, 10)
+        self.pub = self.create_publisher(MarkerArray, PUBLISHER_TOPIC, 10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.connect((foxy_host, PORT))
@@ -193,25 +192,25 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode",
-        choices=["voxblox_noetic", "vsgraphs_jazzy"],
+        choices=["voxblox_foxy", "vsgraphs_jazzy"],
         required=True,
-        help="Run as Voxblox Noetic relay (server) or vSGraphs_Jazzy relay (client)!",
+        help="Run as Voxblox Foxy relay (server) or vSGraphs_Jazzy relay (client)!",
     )
     parser.add_argument(
         "--foxy-host",
         default="127.0.0.1",
-        help="IP address of Noetic container (for Jazzy mode)!",
+        help="IP address of Foxy container (for Jazzy mode)!",
     )
     args = parser.parse_args()
 
     rclpy.init()
 
-    if args.mode == "voxblox_noetic":
-        node = NoeticRelay()
+    if args.mode == "voxblox_foxy":
+        node = FoxyRelay()
     elif args.mode == "vsgraphs_jazzy":
         node = JazzyRelay(args.foxy_host)
     else:
-        raise ValueError("Invalid mode! Use 'voxblox_noetic' or 'vsgraphs_jazzy'.")
+        raise ValueError("Invalid mode! Use 'voxblox_foxy' or 'vsgraphs_jazzy'.")
 
     try:
         rclpy.spin(node)
