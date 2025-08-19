@@ -28,16 +28,16 @@ VOX2ROS_JAZZY_TOPIC = "/vsgraphs_tools/vox2ros_skeleton_graph"
 
 
 class JazzyRelay(Node):
-    def __init__(self, foxy_host):
+    def __init__(self, host=HOST):
         super().__init__("vsgraphs_jazzy_relay")
         self.pub = self.create_publisher(MarkerArray, VOX2ROS_JAZZY_TOPIC, 10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.connect((foxy_host, PORT))
+        self.sock.connect((host, PORT))
         self.sock.setblocking(False)
         self.buffer = ""
         self.get_logger().info(
-            f"[vSGraphs_Jazzy] Connected to Foxy relay at {foxy_host}:{PORT}"
+            f"[vSGraphs_Jazzy] Connected to Noetic relay at {host}:{PORT}"
         )
         self.create_timer(0.01, self.receive_loop)
 
