@@ -25,5 +25,5 @@ procs:
     autostart: false
   Vox2ROS Tool:
     shell: 'bash -c "source /opt/ros/foxy/setup.bash && 
-      python /root/voxblox_ws/tools/vox2ros.py --mode voxblox_foxy"'
+      python /root/voxblox_ws/tools/vox2ros.py --mode voxblox_noetic"'
     autostart: false
