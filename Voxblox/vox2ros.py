@@ -27,63 +27,87 @@ PORT = 5000
 FOXY_VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 PUBLISHER_TOPIC = "/vsgraphs_tools/vox2ros_skeleton_graph"
 
+
 # ---------------------------
 # Foxy side (Voxblox): subscriber → TCP sender
 # ---------------------------
 class FoxyRelay(Node):
     def __init__(self, host="0.0.0.0"):
-        super().__init__('voxblox_foxy_relay')
-        self.sub = self.create_subscription(MarkerArray, FOXY_VOXBLOX_TOPIC, self.callback, 10)
+        super().__init__("voxblox_foxy_relay")
+        self.sub = self.create_subscription(
+            MarkerArray, FOXY_VOXBLOX_TOPIC, self.callback, 10
+        )
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((host, PORT))
         self.sock.listen(1)
-        self.get_logger().info(f"[Voxblox_Foxy] Waiting for Jazzy client (vS-Graphs) on {host}:{PORT} ...")
+        self.get_logger().info(
+            f"[Voxblox_Foxy] Waiting for Jazzy client (vS-Graphs) on {host}:{PORT} ..."
+        )
         self.conn, addr = self.sock.accept()
         self.get_logger().info(f"[Voxblox_Foxy] Connected to the client by {addr}!")
 
     def callback(self, msg: MarkerArray):
-        data = {
-            "markers": []
-        }
+        data = {"markers": []}
+        self.get_logger().info(f"[Voxblox_Foxy] Messages received, processing {len(msg.marker)} markers ...")
+        # Process MarkerArray and convert to JSON
         for m in msg.markers:
-            data["markers"].append({
-                "header": {
-                    "stamp": {"sec": m.header.stamp.sec, "nanosec": m.header.stamp.nanosec},
-                    "frame_id": m.header.frame_id,
-                },
-                "ns": m.ns,
-                "id": m.id,
-                "type": m.type,
-                "action": m.action,
-                "pose": {
-                    "position": {
-                        "x": m.pose.position.x,
-                        "y": m.pose.position.y,
-                        "z": m.pose.position.z,
+            data["markers"].append(
+                {
+                    "header": {
+                        "stamp": {
+                            "sec": m.header.stamp.sec,
+                            "nanosec": m.header.stamp.nanosec,
+                        },
+                        "frame_id": m.header.frame_id,
                     },
-                    "orientation": {
-                        "x": m.pose.orientation.x,
-                        "y": m.pose.orientation.y,
-                        "z": m.pose.orientation.z,
-                        "w": m.pose.orientation.w,
+                    "ns": m.ns,
+                    "id": m.id,
+                    "type": m.type,
+                    "action": m.action,
+                    "pose": {
+                        "position": {
+                            "x": m.pose.position.x,
+                            "y": m.pose.position.y,
+                            "z": m.pose.position.z,
+                        },
+                        "orientation": {
+                            "x": m.pose.orientation.x,
+                            "y": m.pose.orientation.y,
+                            "z": m.pose.orientation.z,
+                            "w": m.pose.orientation.w,
+                        },
                     },
-                },
-                "scale": {
-                    "x": m.scale.x,
-                    "y": m.scale.y,
-                    "z": m.scale.z,
-                },
-                "color": {
-                    "r": m.color.r,
-                    "g": m.color.g,
-                    "b": m.color.b,
-                    "a": m.color.a,
-                },
-            })
+                    "scale": {
+                        "x": m.scale.x,
+                        "y": m.scale.y,
+                        "z": m.scale.z,
+                    },
+                    "color": {
+                        "r": m.color.r,
+                        "g": m.color.g,
+                        "b": m.color.b,
+                        "a": m.color.a,
+                    },
+                }
+            )
         try:
             self.conn.sendall((json.dumps(data) + "\n").encode("utf-8"))
         except (BrokenPipeError, ConnectionResetError):
-            self.get_logger().warn("[Voxblox_Foxy] Lost connection to Jazzy (vS-Graphs) client!")
+            self.get_logger().warn(
+                "[Voxblox_Foxy] Lost connection to Jazzy (vS-Graphs) client!"
+            )
+
+    def destroy_node(self):
+        self.get_logger().info("[Voxblox_Foxy] Shutting down relay...")
+        try:
+            if hasattr(self, "conn"):
+                self.conn.close()
+            if hasattr(self, "sock"):
+                self.sock.close()
+        except Exception as e:
+            self.get_logger().warn(f"[Voxblox_Foxy] Error closing socket: {e}")
+        super().destroy_node()
 
 
 # ---------------------------
@@ -91,23 +115,27 @@ class FoxyRelay(Node):
 # ---------------------------
 class JazzyRelay(Node):
     def __init__(self, foxy_host):
-        super().__init__('vsgraphs_jazzy_relay')
+        super().__init__("vsgraphs_jazzy_relay")
         self.pub = self.create_publisher(MarkerArray, PUBLISHER_TOPIC, 10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.connect((foxy_host, PORT))
         self.sock.setblocking(False)
         self.buffer = ""
-        self.get_logger().info(f"[vS-Graphs Jazzy] Connected to Foxy relay at {foxy_host}:{PORT}")
+        self.get_logger().info(
+            f"[vSGraphs_Jazzy] Connected to Foxy relay at {foxy_host}:{PORT}"
+        )
         self.create_timer(0.01, self.receive_loop)
 
     def receive_loop(self):
         try:
-            chunk = self.sock.recv(4096).decode('utf-8')
+            chunk = self.sock.recv(4096).decode("utf-8")
             self.buffer += chunk
         except BlockingIOError:
             pass
-
-        # process complete JSON lines
+        # Info
+        self.get_logger().info("[vSGraphs_Jazzy] Messages received, processing...")
+        # Process complete JSON lines
         while "\n" in self.buffer:
             line, self.buffer = self.buffer.split("\n", 1)
             if not line.strip():
@@ -141,7 +169,16 @@ class JazzyRelay(Node):
                     marker_array.markers.append(marker)
                 self.pub.publish(marker_array)
             except json.JSONDecodeError:
-                self.get_logger().warn("[vS-Graphs Jazzy] Failed to decode JSON line")
+                self.get_logger().warn("[vSGraphs_Jazzy] Failed to decode JSON line")
+
+    def destroy_node(self):
+        self.get_logger().info("[vSGraphs_Jazzy] Shutting down relay...")
+        try:
+            if hasattr(self, "sock"):
+                self.sock.close()
+        except Exception as e:
+            self.get_logger().warn(f"[vSGraphs_Jazzy] Error closing socket: {e}")
+        super().destroy_node()
 
 
 # ---------------------------
@@ -149,10 +186,17 @@ class JazzyRelay(Node):
 # ---------------------------
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["voxblox_foxy", "vsgraphs_jazzy"], required=True,
-                        help="Run as Voxblox Foxy relay (server) or vS-Graphs Jazzy relay (client)!")
-    parser.add_argument("--foxy-host", default="127.0.0.1",
-                        help="IP address of Foxy container (for Jazzy mode)!")
+    parser.add_argument(
+        "--mode",
+        choices=["voxblox_foxy", "vsgraphs_jazzy"],
+        required=True,
+        help="Run as Voxblox Foxy relay (server) or vSGraphs_Jazzy relay (client)!",
+    )
+    parser.add_argument(
+        "--foxy-host",
+        default="127.0.0.1",
+        help="IP address of Foxy container (for Jazzy mode)!",
+    )
     args = parser.parse_args()
 
     rclpy.init()
