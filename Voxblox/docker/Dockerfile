@@ -108,6 +108,9 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y \
     && cargo install mprocs
 RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/mprocs.yml -o /root/voxblox_ws/mprocs.yml
 
+# Download bridge topics configuration
+RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/bridge_topics.yml -o /root/voxblox_ws/ros_bridge_ws/bridge_topics.yml
+
 # --------------------------
 # Aliases and Environment Setup
 # --------------------------

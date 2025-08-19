@@ -1,14 +1,29 @@
 procs:
-  I. Voxblox (Noetic):
+  ---- Step I (Noetic) ----:
+    shell: ''
+    autostart: false
+  Voxblox:
     shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
       source /root/voxblox_ws/ros1_ws/devel/setup.bash && 
       roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch"'
     autostart: false
-  II. Bridge (Foxy):
+  
+  ---- Step II (Foxy) ----:
+    shell: ''
+    autostart: false
+  Bridge (All):
     shell: 'bash -c "source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && 
       ros2 run ros1_bridge dynamic_bridge --bridge-all-topics"'
     autostart: false
-  III. Vox2ROS Tool:
+  Bridge (Selected):
+    shell: 'bash -c "source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && 
+      ros2 run ros1_bridge dynamic_bridge --ros-args --params-file /root/voxblox_ws/ros_bridge_ws/bridge_topics.yml"'
+    autostart: false
+  
+  ---- Step III (Jazzy) ----:
+    shell: ''
+    autostart: false
+  Vox2ROS Tool:
     shell: 'bash -c "source /opt/ros/foxy/setup.bash && 
       python /root/voxblox_ws/tools/vox2ros.py --mode voxblox_foxy"'
     autostart: false
