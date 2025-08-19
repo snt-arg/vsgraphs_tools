@@ -1,4 +1,4 @@
-# Voxblox Docker for vS-Graphs (ROS2 Jazzy)
+# 🦊 Voxblox Docker for vS-Graphs (ROS2 Jazzy)
 
 This Docker environment provides a complete setup for integrating [Voxblox](https://github.com/snt-arg/mav_voxblox_planning) in [vS-Graphs](https://github.com/snt-arg/visual_sgraphs). It is based on **Ubuntu 20.04**, with **ROS1 Noetic** (for running `Voxblox`) and **ROS2 Foxy** (for ROS1 to ROS2 bridging), and a custom tool called `vox2ros` that enables Voxblox messages to be translated and understood in **ROS2 Jazzy** of vS-Graphs.
 
