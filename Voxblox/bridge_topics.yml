@@ -1,8 +1,9 @@
-ros__parameters:
-  topics:
-    - topic: /voxblox_skeletonizer/sparse_graph
-      type: visualization_msgs/MarkerArray
-      direction: ros1_to_ros2
-    - topic: /camera/depth/points
-      type: sensor_msgs/msg/PointCloud2
-      direction: ros2_to_ros1
+dynamic_bridge:
+  ros__parameters:
+    topics:
+      - topic: /voxblox_skeletonizer/sparse_graph
+        type: visualization_msgs/MarkerArray
+        direction: ros1_to_ros2
+      - topic: /camera/depth/points
+        type: sensor_msgs/msg/PointCloud2
+        direction: ros2_to_ros1
