@@ -1,6 +1,6 @@
 # Voxblox Docker for vS-Graphs (ROS2 Jazzy)
 
-This Docker environment provides a complete setup for [Voxblox](https://github.com/snt-arg/mav_voxblox_planning) and [vS-Graphs](https://github.com/snt-arg/visual_sgraphs). It is based on **Ubuntu 20.04**, with **ROS1 Noetic** (for running `Voxblox`) and **ROS2 Foxy** (for ROS1 to ROS2 bridging), and a custom tool called `vox2ros` that enables Voxblox messages to be translated and understood in **ROS2 Jazzy** of vS-Graphs.
+This Docker environment provides a complete setup for integrating [Voxblox](https://github.com/snt-arg/mav_voxblox_planning) in [vS-Graphs](https://github.com/snt-arg/visual_sgraphs). It is based on **Ubuntu 20.04**, with **ROS1 Noetic** (for running `Voxblox`) and **ROS2 Foxy** (for ROS1 to ROS2 bridging), and a custom tool called `vox2ros` that enables Voxblox messages to be translated and understood in **ROS2 Jazzy** of vS-Graphs.
 
 ## 🚀 Getting Started
 
@@ -18,6 +18,8 @@ II. Run `mprocs` for running multiple processes in one terminal. The configurati
 ```bash
 mprocs
 ```
+
+Then you can start running `voxblox`, `bridge`, and the `vox2ros` tool (in the same order). The `vox2ros` tool waits to get connected to the tunnel started in **vS-Graphs**. The documentation can be found in [the dedicated page](https://github.com/snt-arg/visual_sgraphs/blob/master/doc/INSTALLATION.md).
 
 ## 📟 Available Commands
 
