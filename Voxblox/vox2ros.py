@@ -49,7 +49,7 @@ class FoxyRelay(Node):
 
     def callback(self, msg: MarkerArray):
         data = {"markers": []}
-        self.get_logger().info(f"[Voxblox_Foxy] Messages received, processing {len(msg.marker)} markers ...")
+        self.get_logger().info(f"[Voxblox_Foxy] Messages received, processing {len(msg.markers)} markers ...")
         # Process MarkerArray and convert to JSON
         for m in msg.markers:
             data["markers"].append(
@@ -133,8 +133,6 @@ class JazzyRelay(Node):
             self.buffer += chunk
         except BlockingIOError:
             pass
-        # Info
-        self.get_logger().info("[vSGraphs_Jazzy] Messages received, processing...")
         # Process complete JSON lines
         while "\n" in self.buffer:
             line, self.buffer = self.buffer.split("\n", 1)
@@ -168,6 +166,10 @@ class JazzyRelay(Node):
                     marker.color.a = m["color"]["a"]
                     marker_array.markers.append(marker)
                 self.pub.publish(marker_array)
+                # Log
+                self.get_logger().info(
+                    f"[vSGraphs_Jazzy] Published {len(marker_array.markers)} markers ..."
+                )
             except json.JSONDecodeError:
                 self.get_logger().warn("[vSGraphs_Jazzy] Failed to decode JSON line")
 
