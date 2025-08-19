@@ -5,8 +5,7 @@ procs:
       roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch"'
     autostart: false
   II. Bridge (Foxy):
-    shell: 'bash -c "source /opt/ros/foxy/setup.bash && 
-      source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && 
+    shell: 'bash -c "source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && 
       ros2 run ros1_bridge dynamic_bridge --bridge-all-topics"'
     autostart: false
   III. Vox2ROS Tool:

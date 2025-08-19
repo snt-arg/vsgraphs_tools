@@ -95,7 +95,7 @@ RUN git clone -b foxy https://github.com/ros2/ros1_bridge src/ros1_bridge
 # ---------------------------------------------------------
 # Download Vox2Ros Toolkit for Communication with vS-Graphs
 # ---------------------------------------------------------
-RUN sudo apt update && sudo apt install -y nano
+RUN sudo apt update && sudo apt install -y nano ros-foxy-rmw-cyclonedds-cpp
 WORKDIR /root/voxblox_ws/tools
 RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/vox2ros.py -o /root/voxblox_ws/tools/vox2ros.py
 RUN chmod +x /root/voxblox_ws/tools/vox2ros.py
