@@ -101,7 +101,7 @@ class NoeticRelay:
             rospy.logwarn(f"[Voxblox_Noetic] Error closing socket: {e}")
 
 
-if __name__ == "__main__":
+def main():
     # Argument parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -125,3 +125,6 @@ if __name__ == "__main__":
         rospy.spin()
     except KeyboardInterrupt:
         pass
+
+if __name__ == "__main__":
+    main()
