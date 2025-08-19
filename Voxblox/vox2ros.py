@@ -24,8 +24,8 @@ from visualization_msgs.msg import MarkerArray, Marker
 
 # Variables
 PORT = 5000
-PUBLISHER_TOPIC = "/vox2ros/skeleton_sparse_graph"
 FOXY_VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
+PUBLISHER_TOPIC = "/vsgraphs_tools/vox2ros_skeleton_graph"
 
 # ---------------------------
 # Foxy side (Voxblox): subscriber → TCP sender
