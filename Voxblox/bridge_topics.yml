@@ -2,7 +2,7 @@ dynamic_bridge:
   ros__parameters:
     topics:
       - topic: /voxblox_skeletonizer/sparse_graph
-        type: visualization_msgs/MarkerArray
+        type: visualization_msgs/msg/MarkerArray
         direction: ros1_to_ros2
       - topic: /camera/depth/points
         type: sensor_msgs/msg/PointCloud2
