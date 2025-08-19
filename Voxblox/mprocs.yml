@@ -1,16 +1,15 @@
 procs:
   I. Voxblox (Noetic):
     shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
-    source ~/workspace/ros/orbslam3_ros_ws/devel/setup.bash && 
-    roslaunch aruco_ros marker_publisher.launch 2>/dev/null"'
+      source /root/voxblox_ws/ros1_ws/devel/setup.bash && 
+      roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch"'
     autostart: false
   II. Bridge (Foxy):
-    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
-    source ~/workspace/ros/orbslam3_ros_ws/devel/setup.bash && 
-    roslaunch aruco_ros marker_publisher.launch 2>/dev/null"'
+    shell: 'bash -c "source /opt/ros/foxy/setup.bash && 
+      source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && 
+      ros2 run ros1_bridge dynamic_bridge --bridge-all-topics"'
     autostart: false
   III. Vox2ROS Tool:
-    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
-    source ~/workspace/ros/orbslam3_ros_ws/devel/setup.bash && 
-    roslaunch aruco_ros marker_publisher.launch 2>/dev/null"'
+    shell: 'bash -c "source /opt/ros/foxy/setup.bash && 
+      python /root/voxblox_ws/tools/vox2ros.py --mode voxblox_foxy"'
     autostart: false

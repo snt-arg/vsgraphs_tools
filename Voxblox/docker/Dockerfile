@@ -92,9 +92,35 @@ RUN catkin build mav_voxblox_planning
 WORKDIR /root/voxblox_ws/ros_bridge_ws
 RUN git clone -b foxy https://github.com/ros2/ros1_bridge src/ros1_bridge
 
+# ---------------------------------------------------------
+# Download Vox2Ros Toolkit for Communication with vS-Graphs
+# ---------------------------------------------------------
+RUN sudo apt update && sudo apt install -y nano
+WORKDIR /root/voxblox_ws/tools
+RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/vox2ros.py -o /root/voxblox_ws/tools/vox2ros.py
+RUN chmod +x /root/voxblox_ws/tools/vox2ros.py
+
+# ---------------------------
+# Download and Install mprocs
+# ---------------------------
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y \
+    && . "$HOME/.cargo/env" \
+    && cargo install mprocs
+RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/mprocs.yml -o /root/voxblox_ws/mprocs.yml
+
+# --------------------------
+# Aliases and Environment Setup
+# --------------------------
+RUN echo "alias noetic='source /opt/ros/noetic/setup.bash'" >> ~/.bashrc && \
+    echo "alias foxy='source /opt/ros/foxy/setup.bash'" >> ~/.bashrc && \
+    echo "alias mprocs='mprocs -c /root/voxblox_ws/mprocs.yml'" >> ~/.bashrc && \
+    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc && \
+    echo "alias bridge='source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && ros2 run ros1_bridge dynamic_bridge --bridge-all-topics'" >> ~/.bashrc
+
 # --------------------------
 # Build ros1_bridge
 # --------------------------
+WORKDIR /root/voxblox_ws/ros_bridge_ws
 SHELL ["/bin/bash", "-i", "-c"]
 RUN noetic && foxy && \
     colcon build --packages-select ros1_bridge --cmake-force-configure
@@ -107,31 +133,6 @@ RUN noetic && \
     rosdep install -y --from-paths src --ignore-src --rosdistro noetic --skip-keys="numpy_eigen grpc yaml_cpp_catkin catkin_boost_python_buildtool" && \
     catkin config --blacklist minkindr_python && \
     catkin build
-
-# ---------------------------------------------------------
-# Download Vox2Ros Toolkit for Communication with vS-Graphs
-# ---------------------------------------------------------
-RUN sudo apt update && sudo apt install -y nano
-WORKDIR /root/voxblox_ws/tools
-RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/vox2ros.py -o /root/voxblox_ws/tools/vox2ros.py
-RUN chmod +x /root/voxblox_ws/tools/vox2ros.py
-
-# ---------------------------
-# Download and Install mprocs
-# ---------------------------
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
-ENV PATH=/home/$USERNAME/.cargo/bin:$PATH
-RUN cargo install mprocs
-RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/mprocs.yml -o /root/voxblox_ws/mprocs.yml
-
-# --------------------------
-# Aliases and Environment Setup
-# --------------------------
-RUN echo "alias noetic='source /opt/ros/noetic/setup.bash'" >> ~/.bashrc && \
-    echo "alias foxy='source /opt/ros/foxy/setup.bash'" >> ~/.bashrc && \
-    echo "alias mprocs='mprocs -c /root/voxblox_ws/mprocs.yml'" >> ~/.bashrc && \
-    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc && \
-    echo "alias bridge='source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && ros2 run ros1_bridge dynamic_bridge --bridge-all-topics'" >> ~/.bashrc
 
 WORKDIR /root/voxblox_ws
 
