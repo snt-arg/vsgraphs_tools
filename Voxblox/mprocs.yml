@@ -1,0 +1,16 @@
+procs:
+  I. Voxblox (Noetic):
+    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
+    source ~/workspace/ros/orbslam3_ros_ws/devel/setup.bash && 
+    roslaunch aruco_ros marker_publisher.launch 2>/dev/null"'
+    autostart: false
+  II. Bridge (Foxy):
+    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
+    source ~/workspace/ros/orbslam3_ros_ws/devel/setup.bash && 
+    roslaunch aruco_ros marker_publisher.launch 2>/dev/null"'
+    autostart: false
+  III. Vox2ROS Tool:
+    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
+    source ~/workspace/ros/orbslam3_ros_ws/devel/setup.bash && 
+    roslaunch aruco_ros marker_publisher.launch 2>/dev/null"'
+    autostart: false

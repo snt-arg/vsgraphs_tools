@@ -64,15 +64,6 @@ RUN apt-get update && apt-get install -y \
     python3-colcon-common-extensions
 
 # --------------------------
-# Aliases and Environment Setup
-# --------------------------
-RUN echo "alias noetic='source /opt/ros/noetic/setup.bash'" >> ~/.bashrc && \
-    echo "alias foxy='source /opt/ros/foxy/setup.bash'" >> ~/.bashrc && \
-    echo "alias zenoh='source ~/voxblox_ws/zenoh-plugin-ros2dds/install/setup.bash'" >> ~/.bashrc && \
-    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc && \
-    echo "alias bridge='source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && ros2 run ros1_bridge dynamic_bridge --bridge-all-topics'" >> ~/.bashrc
-
-# --------------------------
 # Create Workspaces
 # --------------------------
 RUN mkdir -p /root/voxblox_ws/ros1_ws/src
@@ -117,30 +108,30 @@ RUN noetic && \
     catkin config --blacklist minkindr_python && \
     catkin build
 
-# --------------------------
-# Source everything at startup
-# --------------------------
-WORKDIR /root/voxblox_ws
-
-# Cyclone DDS setup (vS-Graphs Communication)
-RUN sudo apt update
-RUN sudo apt install ros-foxy-rmw-cyclonedds-cpp -y
-
-# Eclipse Zenoh Setup (vS-Graphs Communication)
-RUN git clone https://github.com/eclipse-zenoh/zenoh-plugin-ros2dds.git
-WORKDIR /root/voxblox_ws/zenoh-plugin-ros2dds
-RUN foxy && \
-    rosdep install --from-paths . --ignore-src -r -y && \
-    colcon build --packages-select zenoh_bridge_ros2dds --cmake-args -DCMAKE_BUILD_TYPE=Release
-
 # ---------------------------------------------------------
 # Download Vox2Ros Toolkit for Communication with vS-Graphs
 # ---------------------------------------------------------
 RUN sudo apt update && sudo apt install -y nano
-RUN pip3 install --no-cache-dir setuptools
 WORKDIR /root/voxblox_ws/tools
 RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/vox2ros.py -o /root/voxblox_ws/tools/vox2ros.py
 RUN chmod +x /root/voxblox_ws/tools/vox2ros.py
+
+# ---------------------------
+# Download and Install mprocs
+# ---------------------------
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
+ENV PATH=/home/$USERNAME/.cargo/bin:$PATH
+RUN cargo install mprocs
+RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/mprocs.yml -o /root/voxblox_ws/mprocs.yml
+
+# --------------------------
+# Aliases and Environment Setup
+# --------------------------
+RUN echo "alias noetic='source /opt/ros/noetic/setup.bash'" >> ~/.bashrc && \
+    echo "alias foxy='source /opt/ros/foxy/setup.bash'" >> ~/.bashrc && \
+    echo "alias mprocs='mprocs -c /root/voxblox_ws/mprocs.yml'" >> ~/.bashrc && \
+    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc && \
+    echo "alias bridge='source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && ros2 run ros1_bridge dynamic_bridge --bridge-all-topics'" >> ~/.bashrc
 
 WORKDIR /root/voxblox_ws
 
