@@ -30,3 +30,11 @@ Then you can start running `voxblox`, `bridge`, and the `vox2ros` tool (in the s
 ```bash
 source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch
 ```
+- Alias command `rel_vox` for running the custom bridge to share ROS1 messages of **Voxblox** skeleton (Server) via TCP:
+```bash
+python /root/voxblox_ws/tools/relay_noetic.py --mode voxblox_server
+```
+- Alias command `pc_client` for running the custom bridge to receive TCP-based **PointCloud** data (Client) to make ROS1 messages:
+```bash
+python /root/voxblox_ws/tools/relay_noetic.py --mode pc_client
+```

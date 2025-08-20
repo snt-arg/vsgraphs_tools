@@ -122,7 +122,9 @@ RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/
 RUN echo "alias noetic='source /opt/ros/noetic/setup.bash'" >> ~/.bashrc && \
     echo "alias foxy='source /opt/ros/foxy/setup.bash'" >> ~/.bashrc && \
     echo "alias mprocs='mprocs -c /root/voxblox_ws/mprocs.yml'" >> ~/.bashrc && \
-    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc
+    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc && \
+    echo "alias rel_vox='python /root/voxblox_ws/tools/relay_noetic.py --mode voxblox_server'" >> ~/.bashrc && \
+    echo "alias rel_pcl='python /root/voxblox_ws/tools/relay_noetic.py --mode pc_client'" >> ~/.bashrc
 
 # --------------------------
 # Build ros1_bridge
