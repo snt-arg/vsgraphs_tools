@@ -161,10 +161,6 @@ class NoeticRelay_Client:
         rospy.loginfo(
             f"[PointCloud_Client] Connected to Jazzy relay at {host}:{POINTCLOUD_PORT}"
         )
-        # Run receive loop in a background thread
-        self.running = True
-        threading.Thread(target=self.receive_loop, daemon=True).start()
-        rospy.on_shutdown(self.shutdown)
 
     def spin(self):
         rate = rospy.Rate(100)
@@ -229,7 +225,8 @@ def main():
         pass
     finally:
         try:
-            client.shutdown()
+            if client:
+                client.shutdown()
         except:
             pass
 

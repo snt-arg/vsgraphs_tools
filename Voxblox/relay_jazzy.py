@@ -28,7 +28,7 @@ HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
 POINTCLOUD_PORT = 12346
 POINTCLOUD_TOPIC = "/camera/depth/points"
-VOXBLOX_TOPIC = "/vsgraphs_tools/vox2ros_skeleton_graph"
+VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
 
 def pointcloud2Dict(msg: PointCloud2):
