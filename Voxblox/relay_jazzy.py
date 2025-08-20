@@ -28,7 +28,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
 POINTCLOUD_PORT = 12346
-POINTCLOUD_CALLBACK_FREQ = 1.0  # seconds
+POINTCLOUD_CALLBACK_FREQ = 3.0  # seconds
 POINTCLOUD_TOPIC = "/camera/depth/points"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
