@@ -32,36 +32,6 @@ POINTCLOUD_TOPIC = "/camera/depth/points"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
 
-def pointcloud2Dict(msg: PointCloud2):
-    """Convert ROS2 PointCloud2 into JSON-serializable dict."""
-    return {
-        "header": {
-            "frame_id": msg.header.frame_id,
-            "stamp": {
-                "sec": msg.header.stamp.sec,
-                "nanosec": msg.header.stamp.nanosec,
-            },
-        },
-        "height": msg.height,
-        "width": msg.width,
-        "fields": [
-            {
-                "name": f.name,
-                "offset": f.offset,
-                "datatype": f.datatype,
-                "count": f.count,
-            }
-            for f in msg.fields
-        ],
-        "is_bigendian": msg.is_bigendian,
-        "point_step": msg.point_step,
-        "row_step": msg.row_step,
-        "is_dense": msg.is_dense,
-        # Encode raw binary data as base64 string
-        "data": base64.b64encode(msg.data).decode("utf-8"),
-    }
-
-
 class JazzyRelay_Client(Node):
     def __init__(self, host=HOST):
         # Create a ROS node
@@ -165,9 +135,6 @@ class JazzyRelay_Server(Node):
             self.get_logger().info(
                 f"[PintCloud_Server] Sent PointCloud2 {msg.width}x{msg.height} ({len(msg.data)} bytes)"
             )
-            # msg_dict = pointcloud2Dict(msg)
-            # payload = json.dumps(msg_dict) + "\n"
-            # self.conn.sendall(payload.encode("utf-8"))
             header = struct.pack("III", msg.width, msg.height, len(msg.data))
             self.conn.sendall(header + msg.data)
         except Exception as e:
