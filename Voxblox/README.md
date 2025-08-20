@@ -25,11 +25,8 @@ Then you can start running `voxblox`, `bridge`, and the `vox2ros` tool (in the s
 
 - Alias command `noetic` for sourcing **ROS1 Noetic**
 - Alias command `foxy` for sourcing **ROS2 Foxy**
+- Alias command `mprocs` for running **Mprocs**
 - Alias command `voxblox` for sourcing and running **Voxblox**:
 ```bash
 source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch
-```
-- Alias command `bridge` for bridging **ROS1 Noetic** messages to **ROS2 Foxy**:
-```bash
-source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && ros2 run ros1_bridge dynamic_bridge --bridge-all-topics
 ```

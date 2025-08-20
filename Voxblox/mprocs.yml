@@ -19,11 +19,3 @@ procs:
     shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
       python /root/voxblox_ws/tools/relay_noetic.py --mode pc_client"'
     autostart: false
-  
-  ---- Jazzy ----:
-    shell: ''
-    autostart: false
-  Rec. Voxblox:
-    shell: 'bash -c "source /opt/ros/foxy/setup.bash && 
-      python /root/voxblox_ws/tools/relay_jazzy.py --mode voxblox_receive"'
-    autostart: false

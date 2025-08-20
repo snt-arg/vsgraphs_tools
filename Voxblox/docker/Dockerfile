@@ -1,16 +1,22 @@
 FROM ubuntu:20.04
 
+# ---------
 # Arguments
+# ---------
 ARG USERNAME=user
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+# ----------------------
 # Environment variables
+# ----------------------
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
+# ----------------------------
 # Install common dependencies
+# ----------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python-is-python3 \
@@ -25,8 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libeigen3-dev && \
     locale-gen en_US en_US.UTF-8 && \
     update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
-
-# Install catkin_tools
 RUN pip3 install -U catkin_tools
 
 # --------------------------
@@ -48,7 +52,9 @@ RUN apt-get update && apt-get install -y \
     protobuf-compiler \ 
     autoconf
 
+# -------------------
 # Initialize rosdep
+# -------------------
 RUN rosdep init || true
 RUN rosdep update
 
@@ -67,7 +73,7 @@ RUN apt-get update && apt-get install -y \
 # Create Workspaces
 # --------------------------
 RUN mkdir -p /root/voxblox_ws/ros1_ws/src
-RUN mkdir -p /root/voxblox_ws/ros_bridge_ws/src
+# RUN mkdir -p /root/voxblox_ws/ros_bridge_ws/src
 
 # Clone your ROS1 package
 WORKDIR /root/voxblox_ws/ros1_ws
@@ -89,8 +95,8 @@ RUN catkin build protobuf_catkin
 RUN catkin build mav_voxblox_planning
 
 # Clone ros1_bridge
-WORKDIR /root/voxblox_ws/ros_bridge_ws
-RUN git clone -b foxy https://github.com/ros2/ros1_bridge src/ros1_bridge
+# WORKDIR /root/voxblox_ws/ros_bridge_ws
+# RUN git clone -b foxy https://github.com/ros2/ros1_bridge src/ros1_bridge
 
 # ---------------------------------------------------------
 # Download Vox2Ros Toolkit for Communication with vS-Graphs
@@ -110,25 +116,21 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y \
     && cargo install mprocs
 RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/mprocs.yml -o /root/voxblox_ws/mprocs.yml
 
-# Download bridge topics configuration
-RUN curl -L https://raw.githubusercontent.com/snt-arg/vsgraphs_tools/refs/heads/main/Voxblox/bridge_topics.yml -o /root/voxblox_ws/ros_bridge_ws/bridge_topics.yml
-
 # --------------------------
 # Aliases and Environment Setup
 # --------------------------
 RUN echo "alias noetic='source /opt/ros/noetic/setup.bash'" >> ~/.bashrc && \
     echo "alias foxy='source /opt/ros/foxy/setup.bash'" >> ~/.bashrc && \
     echo "alias mprocs='mprocs -c /root/voxblox_ws/mprocs.yml'" >> ~/.bashrc && \
-    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc && \
-    echo "alias bridge='source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && ros2 run ros1_bridge dynamic_bridge --bridge-all-topics'" >> ~/.bashrc
+    echo "alias voxblox='source /root/voxblox_ws/ros1_ws/devel/setup.bash && roslaunch voxblox_skeleton skeletonize_map_vsgraphs.launch'" >> ~/.bashrc
 
 # --------------------------
 # Build ros1_bridge
 # --------------------------
-WORKDIR /root/voxblox_ws/ros_bridge_ws
-SHELL ["/bin/bash", "-i", "-c"]
-RUN noetic && foxy && \
-    colcon build --packages-select ros1_bridge --cmake-force-configure
+# WORKDIR /root/voxblox_ws/ros_bridge_ws
+# SHELL ["/bin/bash", "-i", "-c"]
+# RUN noetic && foxy && \
+#     colcon build --packages-select ros1_bridge --cmake-force-configure
 
 # --------------------------
 # Build ROS1 workspace

@@ -167,9 +167,6 @@ class JazzyRelay_Server(Node):
             msg_dict = pointcloud2Dict(msg)
             payload = json.dumps(msg_dict) + "\n"
             self.conn.sendall(payload.encode("utf-8"))
-            self.get_logger().info(
-                f"[PintCloud_Server] Sent PointCloud2 {msg.width}x{msg.height} ({len(msg.data)} bytes)"
-            )
         except Exception as e:
             self.get_logger().error(
                 f"[PintCloud_Server] Error sending PointCloud2: {e}"
