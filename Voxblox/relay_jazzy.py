@@ -18,6 +18,7 @@
 import json
 import rclpy
 import socket
+import struct
 import base64
 import argparse
 from rclpy.node import Node
@@ -162,11 +163,13 @@ class JazzyRelay_Server(Node):
         try:
             # Log the received PointCloud2 message
             self.get_logger().info(
-                f"[PintCloud_Server] Received PointCloud2 {msg.width}x{msg.height} ({len(msg.data)} bytes)"
+                f"[PintCloud_Server] Sent PointCloud2 {msg.width}x{msg.height} ({len(msg.data)} bytes)"
             )
-            msg_dict = pointcloud2Dict(msg)
-            payload = json.dumps(msg_dict) + "\n"
-            self.conn.sendall(payload.encode("utf-8"))
+            # msg_dict = pointcloud2Dict(msg)
+            # payload = json.dumps(msg_dict) + "\n"
+            # self.conn.sendall(payload.encode("utf-8"))
+            header = struct.pack("III", msg.width, msg.height, len(msg.data))
+            self.conn.sendall(header + msg.data)
         except Exception as e:
             self.get_logger().error(
                 f"[PintCloud_Server] Error sending PointCloud2: {e}"

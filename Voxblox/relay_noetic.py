@@ -19,6 +19,7 @@ import json
 import rospy
 import socket
 import base64
+import struct
 import argparse
 import threading
 from std_msgs.msg import Header
@@ -164,24 +165,62 @@ class NoeticRelay_Client:
 
     def spin(self):
         rate = rospy.Rate(100)
+        headerSize = 12  # 3 ints (width, height, size)
         while not rospy.is_shutdown():
             try:
-                chunk = self.sock.recv(4096).decode("utf-8")
-                self.buffer += chunk
-            except BlockingIOError:
-                pass
-            while "\n" in self.buffer:
-                line, self.buffer = self.buffer.split("\n", 1)
-                if not line.strip():
-                    continue
-                try:
-                    msg_dict = json.loads(line)
-                    pc2_msg = dict2PointCloud(msg_dict)
-                    self.pub.publish(pc2_msg)
-                    rospy.loginfo(
-                        f"[PointCloud_Client] Published PointCloud2 {pc2_msg.width}x{pc2_msg.height} ({len(pc2_msg.data)} bytes)"
-                    )
-                except Exception as e:
+            #     chunk = self.sock.recv(4096).decode("utf-8")
+            #     self.buffer += chunk
+            # except BlockingIOError:
+            #     pass
+            # while "\n" in self.buffer:
+            #     line, self.buffer = self.buffer.split("\n", 1)
+            #     if not line.strip():
+            #         continue
+            #     try:
+            #         msg_dict = json.loads(line)
+            #         pc2_msg = dict2PointCloud(msg_dict)
+            #         self.pub.publish(pc2_msg)
+            #         rospy.loginfo(
+            #             f"[PointCloud_Client] Published PointCloud2 {pc2_msg.width}x{pc2_msg.height} ({len(pc2_msg.data)} bytes)"
+            #         )
+                # --- Step 1: Read fixed header ---
+                header = b""
+                while len(header) < headerSize:
+                    packet = self.sock.recv(headerSize - len(header))
+                    if not packet:
+                        rospy.logwarn("[PointCloud_Client] Connection closed by server")
+                        return
+                    header += packet
+
+                width, height, size = struct.unpack("III", header)
+
+                # --- Step 2: Read raw point cloud data ---
+                data = b""
+                while len(data) < size:
+                    packet = self.sock.recv(size - len(data))
+                    if not packet:
+                        rospy.logwarn("[PointCloud_Client] Connection closed mid-message")
+                        return
+                    data += packet
+
+                # --- Step 3: Reconstruct PointCloud2 ---
+                pc2_msg = PointCloud2()
+                pc2_msg.header.stamp = rospy.Time.now()
+                pc2_msg.header.frame_id = "map"   # adjust as needed
+                pc2_msg.width = width
+                pc2_msg.height = height
+                pc2_msg.is_dense = True
+                pc2_msg.is_bigendian = False
+                pc2_msg.point_step = 16  # ⚠️ adjust depending on your cloud fields
+                pc2_msg.row_step = pc2_msg.point_step * width
+                pc2_msg.data = data
+
+                self.pub.publish(pc2_msg)
+
+                rospy.loginfo(
+                    f"[PointCloud_Client] Published PointCloud2 {width}x{height} ({len(data)} bytes)"
+                )
+            except Exception as e:
                     rospy.logwarn(f"[PointCloud_Client] Failed to parse message: {e}")
             rate.sleep()
 
