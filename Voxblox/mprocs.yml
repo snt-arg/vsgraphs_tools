@@ -11,9 +11,13 @@ procs:
   ---- Noetic ----:
     shell: ''
     autostart: false
-  Relay Send Voxblox:
+  Relay Voxblox Server:
     shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
-      python /root/voxblox_ws/tools/relay_noetic.py --mode voxblox_send"'
+      python /root/voxblox_ws/tools/relay_noetic.py --mode voxblox_server"'
+    autostart: false
+  Relay PointCloud Client:
+    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
+      python /root/voxblox_ws/tools/relay_noetic.py --mode pc_client"'
     autostart: false
   
   ---- Jazzy ----:
@@ -22,24 +26,4 @@ procs:
   Relay Rec. Voxblox:
     shell: 'bash -c "source /opt/ros/foxy/setup.bash && 
       python /root/voxblox_ws/tools/relay_jazzy.py --mode voxblox_receive"'
-    autostart: false
-  
-  ---- Step II (Foxy) ----:
-    shell: ''
-    autostart: false
-  Bridge (All):
-    shell: 'bash -c "source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && 
-      ros2 run ros1_bridge dynamic_bridge --bridge-all-topics"'
-    autostart: false
-  Bridge (Selected):
-    shell: 'bash -c "source /root/voxblox_ws/ros_bridge_ws/install/setup.bash && 
-      ros2 run ros1_bridge dynamic_bridge --ros-args --params-file /root/voxblox_ws/ros_bridge_ws/bridge_topics.yml"'
-    autostart: false
-  
-  ---- Step III (Jazzy) ----:
-    shell: ''
-    autostart: false
-  Vox2ROS Tool:
-    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
-      python /root/voxblox_ws/tools/vox2ros.py --mode voxblox_noetic"'
     autostart: false

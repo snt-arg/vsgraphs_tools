@@ -18,18 +18,57 @@
 import json
 import rospy
 import socket
+import base64
 import argparse
+import threading
+from std_msgs.msg import Header
 from visualization_msgs.msg import MarkerArray
+from sensor_msgs.msg import PointCloud2, PointField
 
-PORT = 12345
 HOST = "0.0.0.0"
+VOXBLOX_PORT = 12345
+POINTCLOUD_PORT = 12346
+POINTCLOUD_TOPIC = "/camera/depth/points"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
 
-class NoeticRelay:
+def dict2PointCloud(msg_dict):
+    """Convert JSON dict back into ROS1 PointCloud2."""
+    header = Header()
+    header.frame_id = msg_dict["header"]["frame_id"]
+    header.stamp.secs = msg_dict["header"]["stamp"]["sec"]
+    header.stamp.nsecs = msg_dict["header"]["stamp"]["nanosec"]
+    fields = []
+    for f in msg_dict["fields"]:
+        field = PointField()
+        field.name = f["name"]
+        field.offset = f["offset"]
+        field.datatype = f["datatype"]
+        field.count = f["count"]
+        fields.append(field)
+    pc2 = PointCloud2()
+    pc2.header = header
+    pc2.height = msg_dict["height"]
+    pc2.width = msg_dict["width"]
+    pc2.fields = fields
+    pc2.is_bigendian = msg_dict["is_bigendian"]
+    pc2.point_step = msg_dict["point_step"]
+    pc2.row_step = msg_dict["row_step"]
+    pc2.is_dense = msg_dict["is_dense"]
+    # Decode base64 string back to raw bytes
+    pc2.data = base64.b64decode(msg_dict["data"])
+    # Return
+    return pc2
+
+
+class NoeticRelay_Server:
     def __init__(self, host=HOST):
         # Create a ROS node
-        rospy.init_node("voxblox_noetic_relay", anonymous=False)
+        rospy.init_node("noetic_relay_server", anonymous=False)
+        rospy.loginfo("[Voxblox_Server] Starting Noetic relay ...")
+        rospy.loginfo(
+            f"[Voxblox_Server] It subscribes to ROS1 Topic '{VOXBLOX_TOPIC}' and publishes its data via TCP socket."
+        )
         # Subscribe to the get sparse graph of Voxblox
         self.sub = rospy.Subscriber(
             VOXBLOX_TOPIC, MarkerArray, self.callback, queue_size=10
@@ -37,16 +76,18 @@ class NoeticRelay:
         # Create a TCP socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((host, PORT))
+        self.sock.bind((host, VOXBLOX_PORT))
         self.sock.listen(1)
-        rospy.loginfo(f"[Voxblox_Noetic] Waiting for client on {host}:{PORT} ...")
+        rospy.loginfo(
+            f"[Voxblox_Server] Waiting for Jazzy relay on {host}:{VOXBLOX_PORT} ..."
+        )
         self.conn, addr = self.sock.accept()
-        rospy.loginfo(f"[Voxblox_Noetic] Connected to client at {addr}!")
+        rospy.loginfo(f"[Voxblox_Server] Connected to Jazzy relay at {addr}!")
         rospy.on_shutdown(self.shutdown)
 
     def callback(self, msg: MarkerArray):
         data = {"markers": []}
-        rospy.loginfo(f"[Voxblox_Noetic] Processing {len(msg.markers)} markers ...")
+        rospy.loginfo(f"[Voxblox_Server] Processing {len(msg.markers)} markers ...")
         for m in msg.markers:
             data["markers"].append(
                 {
@@ -88,17 +129,73 @@ class NoeticRelay:
             try:
                 self.conn.sendall((json.dumps(data) + "\n").encode("utf-8"))
             except (BrokenPipeError, ConnectionResetError):
-                rospy.logwarn("[Voxblox_Noetic] Lost connection to client!")
+                rospy.logwarn("[Voxblox_Server] Lost connection to client!")
 
     def shutdown(self):
-        rospy.loginfo("[Voxblox_Noetic] Shutting down relay...")
+        rospy.loginfo("[Voxblox_Server] Shutting down Noetic relay ...")
         try:
             if hasattr(self, "conn"):
                 self.conn.close()
             if hasattr(self, "sock"):
                 self.sock.close()
         except Exception as e:
-            rospy.logwarn(f"[Voxblox_Noetic] Error closing socket: {e}")
+            rospy.logwarn(f"[Voxblox_Server] Error closing socket: {e}")
+
+
+class NoeticRelay_Client:
+    def __init__(self, host=HOST):
+        # Create a ROS node
+        rospy.init_node("noetic_relay_client", anonymous=False)
+        rospy.loginfo("[PointCloud_Client] Starting Noetic relay ...")
+        rospy.loginfo(
+            f"[PointCloud_Client] It receives PointCloud data via TCP socket and publishes as ROS1 Topic '{POINTCLOUD_TOPIC}'."
+        )
+        # Create ROS publisher
+        self.pub = rospy.Publisher(POINTCLOUD_TOPIC, PointCloud2, queue_size=10)
+        # Create a TCP socket
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.connect((host, POINTCLOUD_PORT))
+        self.sock.setblocking(False)
+        self.buffer = ""
+        rospy.loginfo(
+            f"[PointCloud_Client] Connected to Jazzy relay at {host}:{POINTCLOUD_PORT}"
+        )
+        # Run receive loop in a background thread
+        self.running = True
+        threading.Thread(target=self.receive_loop, daemon=True).start()
+        rospy.on_shutdown(self.shutdown)
+
+    def spin(self):
+        rate = rospy.Rate(100)
+        while not rospy.is_shutdown():
+            try:
+                chunk = self.sock.recv(4096).decode("utf-8")
+                self.buffer += chunk
+            except BlockingIOError:
+                pass
+            while "\n" in self.buffer:
+                line, self.buffer = self.buffer.split("\n", 1)
+                if not line.strip():
+                    continue
+                try:
+                    msg_dict = json.loads(line)
+                    pc2_msg = dict2PointCloud(msg_dict)
+                    self.pub.publish(pc2_msg)
+                    rospy.loginfo(
+                        f"[PointCloud_Client] Published PointCloud2 {pc2_msg.width}x{pc2_msg.height} ({len(pc2_msg.data)} bytes)"
+                    )
+                except Exception as e:
+                    rospy.logwarn(f"[PointCloud_Client] Failed to parse message: {e}")
+            rate.sleep()
+
+    def shutdown(self):
+        rospy.loginfo("[PointCloud_Client] Shutting down client...")
+        try:
+            if hasattr(self, "sock"):
+                self.sock.close()
+        except Exception as e:
+            rospy.logwarn(f"[PointCloud_Client] Error closing socket: {e}")
 
 
 def main():
@@ -106,9 +203,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode",
-        choices=["voxblox_send"],
+        choices=["voxblox_server", "pc_client"],
         required=True,
-        help="Run as Voxblox Skeleton Sender (server)!",
+        help="Run as Voxblox skeleton publisher (server) or PointCloud receiver (client)!",
     )
     parser.add_argument(
         "--host",
@@ -116,15 +213,26 @@ def main():
         help="IP address of Noetic container (for Jazzy mode)!",
     )
     args = parser.parse_args()
-    # Initialize ROS
-    if args.mode == "voxblox_send":
-        node = NoeticRelay(host=args.host)
-    else:
-        raise ValueError("Invalid mode! Use 'voxblox_send'.")
     try:
-        rospy.spin()
+        # Initialize ROS
+        if args.mode == "voxblox_server":
+            NoeticRelay_Server(host=args.host)
+            rospy.spin()
+        elif args.mode == "pc_client":
+            client = NoeticRelay_Client(host=args.host)
+            client.spin()
+        else:
+            raise ValueError("Invalid mode! Use 'voxblox_server' or 'pc_client'.")
+    except rospy.ROSInterruptException:
+        pass
     except KeyboardInterrupt:
         pass
+    finally:
+        try:
+            client.shutdown()
+        except:
+            pass
+
 
 if __name__ == "__main__":
     main()
