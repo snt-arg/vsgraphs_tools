@@ -138,6 +138,7 @@ RUN echo "alias noetic='source /opt/ros/noetic/setup.bash'" >> ~/.bashrc && \
 # Build ROS1 workspace
 # --------------------------
 WORKDIR /root/voxblox_ws/ros1_ws
+SHELL ["/bin/bash", "-i", "-c"]
 RUN noetic && \
     rosdep install -y --from-paths src --ignore-src --rosdistro noetic --skip-keys="numpy_eigen grpc yaml_cpp_catkin catkin_boost_python_buildtool" && \
     catkin config --blacklist minkindr_python && \
