@@ -16,10 +16,10 @@
 """
 
 import json
+import time
 import rclpy
 import socket
 import struct
-import base64
 import argparse
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
@@ -28,6 +28,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
 POINTCLOUD_PORT = 12346
+POINTCLOUD_CALLBACK_FREQ = 1.0  # seconds
 POINTCLOUD_TOPIC = "/camera/depth/points"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
@@ -124,12 +125,18 @@ class JazzyRelay_Server(Node):
         self.get_logger().info(
             f"[PintCloud_Server] Waiting for Noetic relay on {host}:{POINTCLOUD_PORT} ..."
         )
+        self.last_sent = 0.0
         self.conn, addr = self.sock.accept()
         self.get_logger().info(
             f"[PintCloud_Server] Connected to Noetic relay at {addr}"
         )
 
     def callback(self, msg: PointCloud2):
+        # Run callback only once per second
+        now = time.time()
+        if now - self.last_sent < POINTCLOUD_CALLBACK_FREQ:
+            return
+        self.last_sent = now
         try:
             # Log the received PointCloud2 message
             self.get_logger().info(
