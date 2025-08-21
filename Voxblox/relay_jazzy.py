@@ -100,15 +100,20 @@ class JazzyRelay_Client(Node):
                     marker.lifetime.sec = m["lifetime"]["sec"]
                     marker.lifetime.nanosec = m["lifetime"]["nanosec"]
                     # Points
-                    marker.points = [Point(x=p["x"], y=p["y"], z=p["z"]) for p in m.get("points", [])]
+                    marker.points = [
+                        Point(x=p["x"], y=p["y"], z=p["z"]) for p in m.get("points", [])
+                    ]
                     # Colors
                     marker.colors = [
-                        ColorRGBA(r=c["r"], g=c["g"], b=c["b"], a=c["a"]) for c in m.get("colors", [])
+                        ColorRGBA(r=c["r"], g=c["g"], b=c["b"], a=c["a"])
+                        for c in m.get("colors", [])
                     ]
                     # Text & mesh
                     marker.text = m.get("text", "")
                     marker.mesh_resource = m.get("mesh_resource", "")
-                    marker.mesh_use_embedded_materials = m.get("mesh_use_embedded_materials", False)
+                    marker.mesh_use_embedded_materials = m.get(
+                        "mesh_use_embedded_materials", False
+                    )
                     # Append to MarkerArray
                     marker_array.markers.append(marker)
                 # Publish the MarkerArray
@@ -161,12 +166,35 @@ class JazzyRelay_Server(Node):
         self.last_sent = now
         # Prepare and send PointCloud2 data
         try:
+            # Pack fixed header
+            header = struct.pack(
+                "IIII??I",
+                msg.width,
+                msg.height,
+                msg.point_step,
+                msg.row_step,
+                msg.is_dense,
+                msg.is_bigendian,
+                len(msg.fields),
+            )
+            # Pack fields
+            field_bytes = b""
+            for f in msg.fields:
+                name_bytes = f.name.encode("utf-8")
+                name_bytes = name_bytes[:32].ljust(32, b"\0")
+                field_bytes += struct.pack(
+                    "32sIII",
+                    name_bytes,
+                    f.offset,
+                    f.datatype,
+                    f.count,
+                )
+            # Send header, fields, and PC data
+            self.conn.sendall(header + field_bytes + msg.data)
             # Log the received PointCloud2 message
             self.get_logger().info(
                 f"[PointCloud_Server] Sent PointCloud2 {msg.width}x{msg.height} ({len(msg.data)} bytes)"
             )
-            header = struct.pack("III", msg.width, msg.height, len(msg.data))
-            self.conn.sendall(header + msg.data)
         # Handle connection issues by reconnecting
         except (BrokenPipeError, ConnectionResetError):
             self.get_logger().warn(

@@ -20,8 +20,8 @@ import rospy
 import socket
 import struct
 import argparse
-from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import MarkerArray
+from sensor_msgs.msg import PointCloud2, PointField
 
 HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
@@ -165,7 +165,7 @@ class NoeticRelay_Client:
 
     def spin(self):
         rate = rospy.Rate(100)
-        headerSize = 12  # 3 ints (width, height, size)
+        headerSize = struct.calcsize("IIII??I")
         while not rospy.is_shutdown():
             try:
                 # Read header
@@ -176,15 +176,28 @@ class NoeticRelay_Client:
                         rospy.logwarn("[PointCloud_Client] Connection closed by server")
                         return
                     header += packet
-                width, height, size = struct.unpack("III", header)
-                # Read raw point cloud data
+                width, height, point_step, row_step, is_dense, is_bigendian, n_fields = struct.unpack(
+                    "IIII??I", header
+                )
+                # Read fields
+                fields = []
+                field_size = struct.calcsize("32sIII")
+                for _ in range(n_fields):
+                    field_bytes = b""
+                    while len(field_bytes) < field_size:
+                        packet = self.sock.recv(field_size - len(field_bytes))
+                        if not packet:
+                            return
+                        field_bytes += packet
+                    name_bytes, offset, datatype, count = struct.unpack("32sIII", field_bytes)
+                    name = name_bytes.decode("utf-8").rstrip("\0")
+                    fields.append(PointField(name=name, offset=offset, datatype=datatype, count=count))
+                # Read data blob
+                data_size = row_step * height
                 data = b""
-                while len(data) < size:
-                    packet = self.sock.recv(size - len(data))
+                while len(data) < data_size:
+                    packet = self.sock.recv(data_size - len(data))
                     if not packet:
-                        rospy.logwarn(
-                            "[PointCloud_Client] Connection closed mid-message"
-                        )
                         return
                     data += packet
                 # Reconstruct PointCloud2
@@ -193,11 +206,13 @@ class NoeticRelay_Client:
                 pc2_msg.header.frame_id = "map"
                 pc2_msg.width = width
                 pc2_msg.height = height
-                pc2_msg.is_dense = True
-                pc2_msg.point_step = 16
-                pc2_msg.is_bigendian = False
-                pc2_msg.row_step = pc2_msg.point_step * width
+                pc2_msg.is_dense = is_dense
+                pc2_msg.point_step = point_step
+                pc2_msg.is_bigendian = is_bigendian
+                pc2_msg.row_step = row_step
                 pc2_msg.data = data
+                pc2_msg.fields = fields
+                # Publish PointCloud2 message
                 self.pub.publish(pc2_msg)
                 rospy.loginfo(
                     f"[PointCloud_Client] Published PointCloud2 {width}x{height} ({len(data)} bytes)"
