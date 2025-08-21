@@ -30,7 +30,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
 POINTCLOUD_PORT = 12346
-POINTCLOUD_CALLBACK_FREQ = 3.0  # seconds
+POINTCLOUD_CALLBACK_FREQ = 4.0 # seconds
 POINTCLOUD_TOPIC = "/camera/depth/points"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
@@ -143,7 +143,7 @@ class JazzyRelay_Server(Node):
             f"[PointCloud_Server] It subscribes to ROS2 Topic '{POINTCLOUD_TOPIC}' and publishes its data via TCP socket."
         )
         self.sub = self.create_subscription(
-            PointCloud2, POINTCLOUD_TOPIC, self.callback, 10
+            PointCloud2, POINTCLOUD_TOPIC, self.callback, 1
         )
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -200,12 +200,25 @@ class JazzyRelay_Server(Node):
             self.get_logger().warn(
                 "[PointCloud_Server] Client disconnected, waiting for reconnection..."
             )
+            # Attempt to close the existing connection and accept a new one
             try:
                 self.conn.close()
             except:
                 pass
-            self.conn, addr = self.sock.accept()
-            self.get_logger().info(f"[PointCloud_Server] Reconnected to {addr}")
+            # Set timeout for the socket to avoid blocking indefinitely
+            self.sock.settimeout(10.0)
+            try:
+                self.conn, addr = self.sock.accept()
+                self.get_logger().info(f"[PointCloud_Server] Reconnected to {addr}")
+            except socket.timeout:
+                self.get_logger().error(
+                    "[PointCloud_Server] No client reconnected within 10 seconds, shutting down..."
+                )
+                self.destroy_node()
+                return
+            finally:
+                # Restore blocking mode (no timeout) for normal operation
+                self.sock.settimeout(None)
         # Handle other exceptions
         except Exception as e:
             self.get_logger().error(
