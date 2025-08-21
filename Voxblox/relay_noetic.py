@@ -59,41 +59,51 @@ class NoeticRelay_Server:
         data = {"markers": []}
         rospy.loginfo(f"[Voxblox_Server] Processing {len(msg.markers)} markers ...")
         for m in msg.markers:
-            data["markers"].append(
-                {
-                    "header": {
-                        "stamp": {
-                            "sec": m.header.stamp.secs,
-                            "nanosec": m.header.stamp.nsecs,
-                        },
-                        "frame_id": m.header.frame_id,
+            marker_dict = {
+                "header": {
+                    "seq": m.header.seq,
+                    "stamp": {
+                        "sec": m.header.stamp.secs,
+                        "nanosec": m.header.stamp.nsecs,
                     },
-                    "ns": m.ns,
-                    "id": m.id,
-                    "type": m.type,
-                    "action": m.action,
-                    "pose": {
-                        "position": {
-                            "x": m.pose.position.x,
-                            "y": m.pose.position.y,
-                            "z": m.pose.position.z,
-                        },
-                        "orientation": {
-                            "x": m.pose.orientation.x,
-                            "y": m.pose.orientation.y,
-                            "z": m.pose.orientation.z,
-                            "w": m.pose.orientation.w,
-                        },
+                    "frame_id": m.header.frame_id,
+                },
+                "ns": m.ns,
+                "id": m.id,
+                "type": m.type,
+                "action": m.action,
+                "pose": {
+                    "position": {
+                        "x": m.pose.position.x,
+                        "y": m.pose.position.y,
+                        "z": m.pose.position.z,
                     },
-                    "scale": {"x": m.scale.x, "y": m.scale.y, "z": m.scale.z},
-                    "color": {
-                        "r": m.color.r,
-                        "g": m.color.g,
-                        "b": m.color.b,
-                        "a": m.color.a,
+                    "orientation": {
+                        "x": m.pose.orientation.x,
+                        "y": m.pose.orientation.y,
+                        "z": m.pose.orientation.z,
+                        "w": m.pose.orientation.w,
                     },
-                }
-            )
+                },
+                "scale": {"x": m.scale.x, "y": m.scale.y, "z": m.scale.z},
+                "color": {
+                    "r": m.color.r,
+                    "g": m.color.g,
+                    "b": m.color.b,
+                    "a": m.color.a,
+                },
+                "lifetime": {
+                    "sec": m.lifetime.secs,
+                    "nanosec": m.lifetime.nsecs,
+                },
+                "frame_locked": m.frame_locked,
+                "points": [{"x": p.x, "y": p.y, "z": p.z} for p in m.points],
+                "colors": [{"r": c.r, "g": c.g, "b": c.b, "a": c.a} for c in m.colors],
+                "text": m.text,
+                "mesh_resource": m.mesh_resource,
+                "mesh_use_embedded_materials": m.mesh_use_embedded_materials,
+            }
+            data["markers"].append(marker_dict)
         # Send data to the client
         if hasattr(self, "conn") and self.conn:
             try:

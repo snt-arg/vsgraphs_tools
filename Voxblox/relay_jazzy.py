@@ -22,6 +22,8 @@ import socket
 import struct
 import argparse
 from rclpy.node import Node
+from std_msgs.msg import ColorRGBA
+from geometry_msgs.msg import Point
 from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import MarkerArray, Marker
 
@@ -68,13 +70,16 @@ class JazzyRelay_Client(Node):
                 marker_array = MarkerArray()
                 for m in msg_dict.get("markers", []):
                     marker = Marker()
+                    # Header
                     marker.header.frame_id = m["header"]["frame_id"]
                     marker.header.stamp.sec = m["header"]["stamp"]["sec"]
                     marker.header.stamp.nanosec = m["header"]["stamp"]["nanosec"]
+                    # Basic fields
                     marker.ns = m["ns"]
                     marker.id = m["id"]
                     marker.type = m["type"]
                     marker.action = m["action"]
+                    # Pose
                     marker.pose.position.x = m["pose"]["position"]["x"]
                     marker.pose.position.y = m["pose"]["position"]["y"]
                     marker.pose.position.z = m["pose"]["position"]["z"]
@@ -82,6 +87,7 @@ class JazzyRelay_Client(Node):
                     marker.pose.orientation.y = m["pose"]["orientation"]["y"]
                     marker.pose.orientation.z = m["pose"]["orientation"]["z"]
                     marker.pose.orientation.w = m["pose"]["orientation"]["w"]
+                    # Scale & color
                     marker.scale.x = m["scale"]["x"]
                     marker.scale.y = m["scale"]["y"]
                     marker.scale.z = m["scale"]["z"]
@@ -89,7 +95,23 @@ class JazzyRelay_Client(Node):
                     marker.color.g = m["color"]["g"]
                     marker.color.b = m["color"]["b"]
                     marker.color.a = m["color"]["a"]
+                    # Lifetime
+                    marker.frame_locked = m["frame_locked"]
+                    marker.lifetime.sec = m["lifetime"]["sec"]
+                    marker.lifetime.nanosec = m["lifetime"]["nanosec"]
+                    # Points
+                    marker.points = [Point(x=p["x"], y=p["y"], z=p["z"]) for p in m.get("points", [])]
+                    # Colors
+                    marker.colors = [
+                        ColorRGBA(r=c["r"], g=c["g"], b=c["b"], a=c["a"]) for c in m.get("colors", [])
+                    ]
+                    # Text & mesh
+                    marker.text = m.get("text", "")
+                    marker.mesh_resource = m.get("mesh_resource", "")
+                    marker.mesh_use_embedded_materials = m.get("mesh_use_embedded_materials", False)
+                    # Append to MarkerArray
                     marker_array.markers.append(marker)
+                # Publish the MarkerArray
                 self.pub.publish(marker_array)
                 # Log
                 self.get_logger().info(
