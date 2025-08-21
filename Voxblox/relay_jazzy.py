@@ -137,6 +137,7 @@ class JazzyRelay_Server(Node):
         if now - self.last_sent < POINTCLOUD_CALLBACK_FREQ:
             return
         self.last_sent = now
+        # Prepare and send PointCloud2 data
         try:
             # Log the received PointCloud2 message
             self.get_logger().info(
@@ -144,6 +145,18 @@ class JazzyRelay_Server(Node):
             )
             header = struct.pack("III", msg.width, msg.height, len(msg.data))
             self.conn.sendall(header + msg.data)
+        # Handle connection issues by reconnecting
+        except (BrokenPipeError, ConnectionResetError):
+            self.get_logger().warn(
+                "[PointCloud_Server] Client disconnected, waiting for reconnection..."
+            )
+            try:
+                self.conn.close()
+            except:
+                pass
+            self.conn, addr = self.sock.accept()
+            self.get_logger().info(f"[PointCloud_Server] Reconnected to {addr}")
+        # Handle other exceptions
         except Exception as e:
             self.get_logger().error(
                 f"[PointCloud_Server] Error sending PointCloud2: {e}"

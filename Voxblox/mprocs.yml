@@ -2,6 +2,10 @@ procs:
   ---- Core ----:
     shell: ''
     autostart: false
+  Roscore:
+    shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
+      roscore"'
+    autostart: false
   Voxblox:
     shell: 'bash -c "source /opt/ros/noetic/setup.bash && 
       source /root/voxblox_ws/ros1_ws/devel/setup.bash && 
