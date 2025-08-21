@@ -20,9 +20,8 @@ import rospy
 import socket
 import struct
 import argparse
-from std_msgs.msg import Header
+from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import MarkerArray
-from sensor_msgs.msg import PointCloud2, PointField
 
 HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
@@ -57,11 +56,10 @@ class NoeticRelay_Server:
 
     def callback(self, msg: MarkerArray):
         data = {"markers": []}
-        rospy.loginfo(f"[Voxblox_Server] Processing {len(msg.markers)} markers ...")
+        # Process each marker in the MarkerArray to match the expected format
         for m in msg.markers:
             marker_dict = {
                 "header": {
-                    "seq": m.header.seq,
                     "stamp": {
                         "sec": m.header.stamp.secs,
                         "nanosec": m.header.stamp.nsecs,
@@ -85,7 +83,11 @@ class NoeticRelay_Server:
                         "w": m.pose.orientation.w,
                     },
                 },
-                "scale": {"x": m.scale.x, "y": m.scale.y, "z": m.scale.z},
+                "scale": {
+                    "x": m.scale.x,
+                    "y": m.scale.y,
+                    "z": m.scale.z,
+                },
                 "color": {
                     "r": m.color.r,
                     "g": m.color.g,
@@ -100,13 +102,32 @@ class NoeticRelay_Server:
                 "points": [{"x": p.x, "y": p.y, "z": p.z} for p in m.points],
                 "colors": [{"r": c.r, "g": c.g, "b": c.b, "a": c.a} for c in m.colors],
                 "text": m.text,
+                "texture_resource": '',
+                "texture": {
+                    "header": {
+                        "stamp": {
+                            "sec": m.header.stamp.secs,
+                            "nanosec": m.header.stamp.nsecs,
+                        },
+                        "frame_id": m.header.frame_id,
+                    },
+                    "format": '',
+                    "data": []
+                },
+                "uv_coordinates": [],
                 "mesh_resource": m.mesh_resource,
+                "mesh_file": {
+                    "filename": '',
+                    "data": [],
+                },
                 "mesh_use_embedded_materials": m.mesh_use_embedded_materials,
             }
+            # Append marker to the data dictionary
             data["markers"].append(marker_dict)
         # Send data to the client
         if hasattr(self, "conn") and self.conn:
             try:
+                rospy.loginfo(f"[Voxblox_Server] Sending the generated dictionary ...")
                 self.conn.sendall((json.dumps(data) + "\n").encode("utf-8"))
             except (BrokenPipeError, ConnectionResetError):
                 rospy.logwarn("[Voxblox_Server] Lost connection to client!")

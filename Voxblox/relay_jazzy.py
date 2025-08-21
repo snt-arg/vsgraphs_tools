@@ -52,7 +52,7 @@ class JazzyRelay_Client(Node):
         self.get_logger().info(
             f"[Voxblox_Client] Connected to Noetic relay at {host}:{VOXBLOX_PORT}"
         )
-        self.create_timer(0.01, self.receive_loop)
+        self.create_timer(0.1, self.receive_loop)
 
     def receive_loop(self):
         try:
@@ -115,7 +115,7 @@ class JazzyRelay_Client(Node):
                 self.pub.publish(marker_array)
                 # Log
                 self.get_logger().info(
-                    f"[Voxblox_Client] Published {len(marker_array.markers)} markers ..."
+                    f"[Voxblox_Client] Dictionary processed and published as ROS2 topic ..."
                 )
             except json.JSONDecodeError:
                 self.get_logger().warn("[Voxblox_Client] Failed to decode JSON line")
