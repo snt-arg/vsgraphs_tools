@@ -147,3 +147,4 @@ RUN noetic && \
 WORKDIR /root/voxblox_ws
 
 CMD ["/bin/bash"]
+SHELL ["/bin/bash"]

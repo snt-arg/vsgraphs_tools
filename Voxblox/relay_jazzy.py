@@ -111,9 +111,9 @@ class JazzyRelay_Client(Node):
 class JazzyRelay_Server(Node):
     def __init__(self, host=HOST):
         super().__init__("jazzy_relay_server")
-        self.get_logger().info(f"[PintCloud_Server] Starting Jazzy relay ...")
+        self.get_logger().info(f"[PointCloud_Server] Starting Jazzy relay ...")
         self.get_logger().info(
-            f"[PintCloud_Server] It subscribes to ROS2 Topic '{POINTCLOUD_TOPIC}' and publishes its data via TCP socket."
+            f"[PointCloud_Server] It subscribes to ROS2 Topic '{POINTCLOUD_TOPIC}' and publishes its data via TCP socket."
         )
         self.sub = self.create_subscription(
             PointCloud2, POINTCLOUD_TOPIC, self.callback, 10
@@ -123,12 +123,12 @@ class JazzyRelay_Server(Node):
         self.sock.bind((host, POINTCLOUD_PORT))
         self.sock.listen(1)
         self.get_logger().info(
-            f"[PintCloud_Server] Waiting for Noetic relay on {host}:{POINTCLOUD_PORT} ..."
+            f"[PointCloud_Server] Waiting for Noetic relay on {host}:{POINTCLOUD_PORT} ..."
         )
         self.last_sent = 0.0
         self.conn, addr = self.sock.accept()
         self.get_logger().info(
-            f"[PintCloud_Server] Connected to Noetic relay at {addr}"
+            f"[PointCloud_Server] Connected to Noetic relay at {addr}"
         )
 
     def callback(self, msg: PointCloud2):
@@ -140,24 +140,24 @@ class JazzyRelay_Server(Node):
         try:
             # Log the received PointCloud2 message
             self.get_logger().info(
-                f"[PintCloud_Server] Sent PointCloud2 {msg.width}x{msg.height} ({len(msg.data)} bytes)"
+                f"[PointCloud_Server] Sent PointCloud2 {msg.width}x{msg.height} ({len(msg.data)} bytes)"
             )
             header = struct.pack("III", msg.width, msg.height, len(msg.data))
             self.conn.sendall(header + msg.data)
         except Exception as e:
             self.get_logger().error(
-                f"[PintCloud_Server] Error sending PointCloud2: {e}"
+                f"[PointCloud_Server] Error sending PointCloud2: {e}"
             )
 
     def destroy_node(self):
-        self.get_logger().info("[PintCloud_Server] Shutting down relay...")
+        self.get_logger().info("[PointCloud_Server] Shutting down relay...")
         try:
             if hasattr(self, "conn"):
                 self.conn.close()
             if hasattr(self, "sock"):
                 self.sock.close()
         except Exception as e:
-            self.get_logger().warn(f"[PintCloud_Server] Error closing socket: {e}")
+            self.get_logger().warn(f"[PointCloud_Server] Error closing socket: {e}")
         super().destroy_node()
 
 

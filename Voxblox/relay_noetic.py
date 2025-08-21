@@ -18,10 +18,8 @@
 import json
 import rospy
 import socket
-import base64
 import struct
 import argparse
-import threading
 from std_msgs.msg import Header
 from visualization_msgs.msg import MarkerArray
 from sensor_msgs.msg import PointCloud2, PointField
@@ -31,35 +29,6 @@ VOXBLOX_PORT = 12345
 POINTCLOUD_PORT = 12346
 POINTCLOUD_TOPIC = "/camera/depth/points"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
-
-
-def dict2PointCloud(msg_dict):
-    """Convert JSON dict back into ROS1 PointCloud2."""
-    header = Header()
-    header.frame_id = msg_dict["header"]["frame_id"]
-    header.stamp.secs = msg_dict["header"]["stamp"]["sec"]
-    header.stamp.nsecs = msg_dict["header"]["stamp"]["nanosec"]
-    fields = []
-    for f in msg_dict["fields"]:
-        field = PointField()
-        field.name = f["name"]
-        field.offset = f["offset"]
-        field.datatype = f["datatype"]
-        field.count = f["count"]
-        fields.append(field)
-    pc2 = PointCloud2()
-    pc2.header = header
-    pc2.height = msg_dict["height"]
-    pc2.width = msg_dict["width"]
-    pc2.fields = fields
-    pc2.is_bigendian = msg_dict["is_bigendian"]
-    pc2.point_step = msg_dict["point_step"]
-    pc2.row_step = msg_dict["row_step"]
-    pc2.is_dense = msg_dict["is_dense"]
-    # Decode base64 string back to raw bytes
-    pc2.data = base64.b64decode(msg_dict["data"])
-    # Return
-    return pc2
 
 
 class NoeticRelay_Server:
@@ -182,7 +151,9 @@ class NoeticRelay_Client:
                 while len(data) < size:
                     packet = self.sock.recv(size - len(data))
                     if not packet:
-                        rospy.logwarn("[PointCloud_Client] Connection closed mid-message")
+                        rospy.logwarn(
+                            "[PointCloud_Client] Connection closed mid-message"
+                        )
                         return
                     data += packet
                 # Reconstruct PointCloud2
@@ -204,7 +175,7 @@ class NoeticRelay_Client:
                 # Avoid busy-waiting and just continue if no data is available
                 pass
             except Exception as e:
-                    rospy.logwarn(f"[PointCloud_Client] Failed to parse message: {e}")
+                rospy.logwarn(f"[PointCloud_Client] Failed to parse message: {e}")
             rate.sleep()
 
     def shutdown(self):
