@@ -102,7 +102,7 @@ class NoeticRelay_Server:
                 "points": [{"x": p.x, "y": p.y, "z": p.z} for p in m.points],
                 "colors": [{"r": c.r, "g": c.g, "b": c.b, "a": c.a} for c in m.colors],
                 "text": m.text,
-                "texture_resource": '',
+                "texture_resource": "",
                 "texture": {
                     "header": {
                         "stamp": {
@@ -111,13 +111,13 @@ class NoeticRelay_Server:
                         },
                         "frame_id": m.header.frame_id,
                     },
-                    "format": '',
-                    "data": []
+                    "format": "",
+                    "data": [],
                 },
                 "uv_coordinates": [],
                 "mesh_resource": m.mesh_resource,
                 "mesh_file": {
-                    "filename": '',
+                    "filename": "",
                     "data": [],
                 },
                 "mesh_use_embedded_materials": m.mesh_use_embedded_materials,
@@ -176,9 +176,15 @@ class NoeticRelay_Client:
                         rospy.logwarn("[PointCloud_Client] Connection closed by server")
                         return
                     header += packet
-                width, height, point_step, row_step, is_dense, is_bigendian, n_fields = struct.unpack(
-                    "IIII??I", header
-                )
+                (
+                    width,
+                    height,
+                    point_step,
+                    row_step,
+                    is_dense,
+                    is_bigendian,
+                    n_fields,
+                ) = struct.unpack("IIII??I", header)
                 # Read fields
                 fields = []
                 field_size = struct.calcsize("32sIII")
@@ -189,9 +195,15 @@ class NoeticRelay_Client:
                         if not packet:
                             return
                         field_bytes += packet
-                    name_bytes, offset, datatype, count = struct.unpack("32sIII", field_bytes)
-                    name = name_bytes.decode("utf-8").rstrip("\0")
-                    fields.append(PointField(name=name, offset=offset, datatype=datatype, count=count))
+                    name_bytes, offset, datatype, count = struct.unpack(
+                        "32sIII", field_bytes
+                    )
+                    name = name_bytes.decode("utf-8", errors="ignore").rstrip("\0")
+                    fields.append(
+                        PointField(
+                            name=name, offset=offset, datatype=datatype, count=count
+                        )
+                    )
                 # Read data blob
                 data_size = row_step * height
                 data = b""
@@ -212,6 +224,18 @@ class NoeticRelay_Client:
                 pc2_msg.row_step = row_step
                 pc2_msg.data = data
                 pc2_msg.fields = fields
+                # If width or height is zero, skip publishing
+                if width == 0 or height == 0:
+                    rospy.logwarn(
+                        f"[PointCloud_Client] Received empty PointCloud2 ({width}x{height}), skipping publish!"
+                    )
+                    continue
+                # Check for corrupted header values
+                if not (1 <= width <= 4096 and 1 <= height <= 4096):
+                    rospy.logwarn(
+                        f"[PointCloud_Client] Skipping potentially corrupted PointCloud2 ({width}x{height}), skipping publish!"
+                    )
+                    continue
                 # Publish PointCloud2 message
                 self.pub.publish(pc2_msg)
                 rospy.loginfo(
