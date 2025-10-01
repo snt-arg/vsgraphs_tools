@@ -21,18 +21,26 @@ import rclpy
 import socket
 import struct
 import argparse
+import numpy as np
 from rclpy.node import Node
 from std_msgs.msg import ColorRGBA
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import PointCloud2
+from scipy.spatial.transform import Rotation as R
 from visualization_msgs.msg import MarkerArray, Marker
 
 HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
 POINTCLOUD_PORT = 12346
-POINTCLOUD_CALLBACK_FREQ = 4.0 # seconds
-POINTCLOUD_TOPIC = "/camera/depth/points"
+POINTCLOUD_CALLBACK_FREQ = 4.0  # seconds
+POINTCLOUD_TOPIC = "/vs_graphs/points_map"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
+
+# Variables
+ROLL = 0.0
+YAW = -1.5697
+PITCH = 1.5697
+ROTATE = R.from_euler("zyx", [YAW, PITCH, ROLL], degrees=False)
 
 
 class JazzyRelay_Client(Node):
@@ -79,14 +87,6 @@ class JazzyRelay_Client(Node):
                     marker.id = m["id"]
                     marker.type = m["type"]
                     marker.action = m["action"]
-                    # Pose
-                    marker.pose.position.x = m["pose"]["position"]["x"]
-                    marker.pose.position.y = m["pose"]["position"]["y"]
-                    marker.pose.position.z = m["pose"]["position"]["z"]
-                    marker.pose.orientation.x = m["pose"]["orientation"]["x"]
-                    marker.pose.orientation.y = m["pose"]["orientation"]["y"]
-                    marker.pose.orientation.z = m["pose"]["orientation"]["z"]
-                    marker.pose.orientation.w = m["pose"]["orientation"]["w"]
                     # Scale & color
                     marker.scale.x = m["scale"]["x"]
                     marker.scale.y = m["scale"]["y"]
@@ -100,9 +100,15 @@ class JazzyRelay_Client(Node):
                     marker.lifetime.sec = m["lifetime"]["sec"]
                     marker.lifetime.nanosec = m["lifetime"]["nanosec"]
                     # Points
-                    marker.points = [
-                        Point(x=p["x"], y=p["y"], z=p["z"]) for p in m.get("points", [])
-                    ]
+                    marker.points = []
+                    points = np.array(
+                        [[p["x"], p["y"], p["z"]] for p in m.get("points", [])]
+                    )
+                    if points.size > 0:
+                        rotated_points = ROTATE.apply(points)
+                        marker.points = [
+                            Point(x=p[0], y=p[1], z=p[2]) for p in rotated_points
+                        ]
                     # Colors
                     marker.colors = [
                         ColorRGBA(r=c["r"], g=c["g"], b=c["b"], a=c["a"])

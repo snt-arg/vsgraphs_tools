@@ -26,7 +26,8 @@ from sensor_msgs.msg import PointCloud2, PointField
 HOST = "0.0.0.0"
 VOXBLOX_PORT = 12345
 POINTCLOUD_PORT = 12346
-POINTCLOUD_TOPIC = "/camera/depth/points"
+# Cam.Frame: "/camera/depth/points", World Frame: "/vs_graphs/points_map"
+POINTCLOUD_TOPIC = "/vs_graphs/points_map"
 VOXBLOX_TOPIC = "/voxblox_skeletonizer/sparse_graph"
 
 
